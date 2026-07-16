@@ -4,8 +4,8 @@
 """
 # phyvacモジュール。hvac + python ->phyvac
 # 空調システムの計算を極力物理原理・詳細な制御ロジックに基づいて行う。
-# ver20231120
-print("phyvac: ver20231120")
+# ver20260716
+print("phyvac: ver20260716")
 import math
 import traceback
 import numpy as np
