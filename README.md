@@ -56,6 +56,8 @@ Please click [here]() to access.
 [こちら](https://github.com/ShoheiMiyata/phyvac/blob/main/Documents/Engineering%20reference_20231129_JP.pdf)より確認できます。
 
 ## Update  
+- 2026/07/16 fix COP reference at low load factor (Chiller・AirSourceHeatPump: 負荷率が表下限未満のとき下限負荷率のCOPを参照するよう修正)
+- 2026/07/16 add AirSourceHeatPumpHeating (空冷ヒートポンプ温水モードモデルとAPIドキュメントの追加)
 - 2023/11    update classes and API document in JP
 - 2023/01/18 add validation(AirSourceHeatPump, AbsorptionChiller, CoolingTower)
 - 2022/08/31 Pumpモデルで定義時に性能曲線を図示するよう修正

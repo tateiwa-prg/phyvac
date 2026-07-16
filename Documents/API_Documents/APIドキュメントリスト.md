@@ -3,6 +3,7 @@
 #### 機器  
 - [Chiller (冷凍機)](https://github.com/ShoheiMiyata/phyvac/blob/main/Documents/API_Documents/JP/pv.Chiller.md)
 - [AirSourceHeatPump (空冷ヒートポンプ)](https://github.com/ShoheiMiyata/phyvac/blob/main/Documents/API_Documents/JP/pv.AirSourceHeatPump.md)
+- [AirSourceHeatPumpHeating (空冷ヒートポンプ 温水モード)](https://github.com/ShoheiMiyata/phyvac/blob/main/Documents/API_Documents/JP/pv.AirSourceHeatPumpHeating.md)
 - [WaterSourceHeatPumpLCEM (水冷ヒートポンプ LCEMモデル)](https://github.com/ShoheiMiyata/phyvac/blob/main/Documents/API_Documents/JP/pv.WaterSourceHeatPump.md)
 - [GeoThermalHeatPumpLCEM (地中熱ヒートポンプ LCEMモデル)]
 - [AbsorptionChillerESS (吸収式冷温水発生機 省エネ基準モデル)](https://github.com/ShoheiMiyata/phyvac/blob/main/Documents/API_Documents/pv.AbsorptionChillerESS_JP.md) 
