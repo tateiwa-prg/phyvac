@@ -5,12 +5,13 @@
 - 除霜運転による効率低下はCOP表に織り込む前提とし、明示的な除霜補正は行わない（COP表の値は負荷率・外気温に対して単調でなくてもよいため、着霜域の凹みも表現可能）
 - 最大加熱能力は外気温によらず定格一定とする（実機では低外気温時に最大能力が低下するため、低外気温域では能力を過大評価し得る）
 - COP表の外気温範囲外の入力はエラーとなる（外挿非対応。冷房版 AirSourceHeatPump と同じ）
+- 入力ファイル例の定格消費電力は、暖房標準定格条件相当（外気乾球温度7℃・負荷率1.0）のCOP表補間値（COP=3.36）と整合する値としている（冷房版 AirSourceHeatPump の入力ファイル例と同じ流儀）
   
 入力ファイル例（外気温は上から下へ昇順、負荷率は左から右へ昇順であること）  
   
-|rated hot water outlet temp.['C]|rated hot water inlet temp.['C]|rated hot water flow[m3/min]|rated power[kW]|hot water pressure loss coefficient[kPa/(m3/min)^2]|  |
+|rated hot water outlet temp. ['C]|rated hot water inlet temp. ['C]|rated hot water flow [m3/min]|rated power [kW]|hot water pressure loss coefficient [kPa/(m3/min)^2]|  |
 | ---- | ---- | ---- | ---- | ---- | ---- |
-|45|40|0.215|25.0|13.9|  |
+|45|40|0.215|22.321180555555557|13.9|  |
 |  |  |  |  |  |  |
 |outdoor air temp.-load factor|0.2|0.4|0.6|0.8|1|
 |-15|1.9|2.1|2.2|2.1|1.9|
@@ -69,6 +70,6 @@ AHPH1 = pv.AirSourceHeatPumpHeating(filename='equipment_spec.xlsx', sheet_name='
 AHPH1.cal(tout_h_sp=45.0, tin_h=40.0, g_h=0.15, tdb=5.0)  # 運転条件の入力と計算
 print(AHPH1.pw, AHPH1.pl, AHPH1.tout_h)  # 計算結果例のプリント
 ```
-> phyvac: ver20231120  
+> phyvac: ver20260716  
 > 14.734610512153344 0.6976744186046512 45.0
   
