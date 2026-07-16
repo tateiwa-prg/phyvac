@@ -603,7 +603,7 @@ class Chiller:
                 self.flag = 1
 
             elif self.pl < pl[0]:
-                pl_cop = pl[-1]
+                pl_cop = pl[0]
                 self.flag = 2
 
             tin_cd_cop = self.tin_cd - (self.tout_ch - self.tout_ch_d) # 冷水出口温度に関する補正
@@ -719,7 +719,7 @@ class AirSourceHeatPump:
                 self.flag = 2
 
             elif self.pl < pl[0]:
-                pl_cop = pl[-1]
+                pl_cop = pl[0]
                 self.flag = 3
 
             self.cop = float(cop([[tdb, pl_cop]]))
@@ -825,7 +825,7 @@ class AirSourceHeatPumpHeating:
                 self.flag = 2
 
             elif self.pl < pl[0]:
-                pl_cop = pl[-1]  # 既存の冷房モデル(AirSourceHeatPump)と同一の扱い
+                pl_cop = pl[0]
                 self.flag = 3
 
             self.cop = float(cop([[tdb, pl_cop]]))
