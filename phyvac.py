@@ -743,6 +743,120 @@ class AirSourceHeatPump:
         self.dp_ch = -self.kr_ch * g_ch ** 2
 
 
+# 負荷率-COP曲線に基づく空冷HP（温水モード）のCOP計算。表は左から右に負荷率、上から下に外気乾球温度が上昇しなければならない。
+# 除霜運転による効率低下はCOP表に織り込む前提とし、明示的な除霜補正は行わない。
+# 低外気温時の最大加熱能力の低下は考慮せず、定格能力一定とする。
+class AirSourceHeatPumpHeating:
+    # 定格値の入力
+    def __init__(self, filename='equipment_spec.xlsx', sheet_name='AirSourceHeatPumpHeating'):
+        # tin   :入口温度[℃]
+        # tout  :出口温度[℃]
+        # g     :流量[m3/min]
+        # q     :熱量[kW]
+        # h     :温水（hot water）
+        # d     :定格値
+        # pw    :消費電力[kW]
+        # pl    :部分負荷率(load factor, 0.0~1.0)
+        # kr_h  :温水圧力損失係数[kPa/(m3/min)**2]
+        # dp    :機器による圧力損失[kPa]
+        # tdb   :外気乾球温度['C]
+        spec_table = pd.read_excel(filename, sheet_name=sheet_name, header=None)
+        self.tout_h_d = float(spec_table.iat[1, 0])
+        self.tin_h_d = float(spec_table.iat[1, 1])
+        self.g_h_d = float(spec_table.iat[1, 2])
+        # 定格加熱能力[kW]（冷房と温度差の向きが逆: 出口-入口）
+        self.q_h_d = (self.tout_h_d - self.tin_h_d) * self.g_h_d * 1000 * 4.186 / 60
+        # 定格主電動機入力[kW]
+        self.pw_d = float(spec_table.iat[1, 3])
+        self.kr_h = float(spec_table.iat[1, 4])
+        # 補機電力[kW]
+        self.pw_sub = 0.0
+        # 定格暖房COP
+        self.COP_rp = self.q_h_d / self.pw_d
+        # 以下、毎時刻変わる可能性のある値
+        self.tout_h = 45.0
+        self.pw = 0.0
+        self.q_h = 0.0
+        self.pl = 0  # 負荷率(0.0~1.0)
+        self.cop = 0.0
+        self.flag = 0  # 問題があったら1~5,なかったら0
+        self.dp_h = 0.0
+        self.tin_h = 40.0
+        self.g_h = 0.0
+        self.tout_h_sp = 45.0
+        self.tdb = 5.0
+
+        pl_cop = spec_table.drop(spec_table.index[[0, 1, 2]])
+        pl_cop.iat[0, 0] = '-'
+        pl_cop = pl_cop.dropna(how='all', axis=1)
+        self.data = pl_cop.values
+
+    # 機器特性表に基づく空冷HP（温水モード）のCOPの算出
+    def cal(self, tout_h_sp, tin_h, g_h, tdb):
+        self.tdb = tdb
+        self.flag = 0
+        self.tout_h_sp = tout_h_sp
+        self.tin_h = tin_h
+        self.g_h = g_h
+        # 温水出口温度[℃]
+        self.tout_h = self.tout_h_sp
+        # 加熱熱量[kW]
+        self.q_h = (self.tout_h - self.tin_h) * self.g_h * 1000 * 4.186 / 60
+        # 処理熱量の上限を定格値とする（負荷率の上限を100%とする）。超える場合は温水出口温度が低下する
+        if self.q_h > self.q_h_d:
+            self.tout_h = self.tout_h_sp - (self.q_h - self.q_h_d) / (self.g_h * 1000 * 4.186 / 60)
+            self.q_h = self.q_h_d
+            self.flag = 1
+
+        if self.q_h > 0:
+            pl = self.data[0][1:].astype(np.float32)
+            temp = self.data.transpose()[0][1:].astype(np.float32)
+            dataset = self.data[1:].transpose()[1:].transpose().astype(np.float32)
+            cop = RegularGridInterpolator((temp, pl), dataset)
+
+            # 部分負荷率
+            self.pl = self.q_h / self.q_h_d
+            pl_cop = self.pl
+
+            if self.pl > pl[-1]:
+                self.pl = pl[-1]
+                pl_cop = self.pl
+                self.q_h = self.q_h_d
+                self.flag = 2
+
+            elif self.pl < pl[0]:
+                pl_cop = pl[-1]  # 既存の冷房モデル(AirSourceHeatPump)と同一の扱い
+                self.flag = 3
+
+            self.cop = float(cop([[tdb, pl_cop]]))
+            # 逆カルノーサイクル（暖房COP: T_hot/(T_hot-T_cold)）に基づく定格に対する温水出口温度変化によるCOP補正
+            # 温水出口温度が外気温度に近い場合（立ち上げ時等）は補正係数が発散するため、上限を2.0とする
+            if tdb < self.tout_h_d:
+                if tdb < self.tout_h:
+                    correction = ((273.15 + self.tout_h) / (self.tout_h - tdb)) / (
+                                 (273.15 + self.tout_h_d) / (self.tout_h_d - tdb))
+                    correction = min(correction, 2.0)
+                else:
+                    # 温水出口温度が外気温度以下の場合も上限値を適用（境界での不連続を避ける）
+                    correction = 2.0
+                self.cop *= correction
+
+            self.pw = self.q_h / self.cop + self.pw_sub
+
+        elif self.q_h == 0:
+            self.pw = 0
+            self.cop = 0
+            self.pl = 0
+            self.flag = 4
+        else:
+            self.pw = 0
+            self.cop = 0
+            self.pl = 0
+            self.flag = 5
+
+        self.dp_h = -self.kr_h * g_h ** 2
+
+
 # 省エネ基準に基づいた吸収式冷温水発生機モデル (Energy-Saving Standard) 
 class AbsorptionChillerESS:
     # rated_capacity_c:     定格冷房能力 [kW]
