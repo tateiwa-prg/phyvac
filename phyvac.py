@@ -615,7 +615,7 @@ class Chiller:
                 tin_cd_cop = temp[-1]
                 self.flag = 4
 
-            self.cop = float(cop([[tin_cd_cop, pl_cop]]))
+            self.cop = cop([[tin_cd_cop, pl_cop]]).item()
             self.pw = self.q_ch / self.cop + self.pw_sub
             self.tout_cd = (self.q_ch + self.pw) / (4.186 * self.g_cd * 1000 / 60) + self.tin_cd
 
@@ -722,7 +722,7 @@ class AirSourceHeatPump:
                 pl_cop = pl[0]
                 self.flag = 3
 
-            self.cop = float(cop([[tdb, pl_cop]]))
+            self.cop = cop([[tdb, pl_cop]]).item()
             # 逆カルノーサイクルに基づく定格に対する冷水出口温度変化によるCOP補正
             self.cop *= ((273.15 + self.tout_ch) / (tdb - self.tout_ch)) / (
                         (273.15 + self.tout_ch_d) / (tdb - self.tout_ch_d))
@@ -828,7 +828,7 @@ class AirSourceHeatPumpHeating:
                 pl_cop = pl[0]
                 self.flag = 3
 
-            self.cop = float(cop([[tdb, pl_cop]]))
+            self.cop = cop([[tdb, pl_cop]]).item()
             # 逆カルノーサイクル（暖房COP: T_hot/(T_hot-T_cold)）に基づく定格に対する温水出口温度変化によるCOP補正
             # 温水出口温度が外気温度に近い場合（立ち上げ時等）は補正係数が発散するため、上限を2.0とする
             if tdb < self.tout_h_d:
