@@ -12,7 +12,7 @@ class TES():
         # https://www.sit.ac.jp/user/konishi/JPN/Lecture/ThermalFluid/ThermalFluid_1stAll.pdf
         # temp ℃
         # density kg/m^3
-        return (999.83952 + 16.945176 * temp - 7.987041 * 10e-3 * temp ** 2 - 46.170461 * 10e-6 * temp ** 3 + 105.56302 * 10e-9 * temp ** 4 - 280.54253 * 10e-12 * temp ** 5) /  (1 + 16.879850 * 10e-3 * temp)
+        return (999.83952 + 16.945176 * temp - 7.987041 * 1e-3 * temp ** 2 - 46.170461 * 1e-6 * temp ** 3 + 105.56302 * 1e-9 * temp ** 4 - 280.54253 * 1e-12 * temp ** 5) /  (1 + 16.879850 * 1e-3 * temp)
 
 
     def water_thermal_conductivity(self, temp):
@@ -23,7 +23,7 @@ class TES():
         tr = (temp_critical_point - temp_k) / temp_critical_point
 
         lamb = a[len(a) - 1]
-        for i in range(len(a) - 2, 0, -1):
+        for i in range(len(a) - 2, -1, -1):
             lamb = a[i] + lamb * tr
         return lamb
 
@@ -36,7 +36,7 @@ class TES():
         tr = (temp_critical_point - temp_k) / temp_critical_point
 
         cpw = a[len(a) -1]
-        for i in range(len(a) - 2, 0, -1):
+        for i in range(len(a) - 2, -1, -1):
             cpw = a[i] + cpw * tr
         return cpw
 

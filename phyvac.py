@@ -4,8 +4,8 @@
 """
 # phyvacモジュール。hvac + python ->phyvac
 # 空調システムの計算を極力物理原理・詳細な制御ロジックに基づいて行う。
-# ver20260716
-print("phyvac: ver20260716")
+# ver20260718
+print("phyvac: ver20260718")
 import math
 import traceback
 import numpy as np
@@ -615,7 +615,7 @@ class Chiller:
                 tin_cd_cop = temp[-1]
                 self.flag = 4
 
-            self.cop = float(cop([[tin_cd_cop, pl_cop]]))
+            self.cop = cop([[tin_cd_cop, pl_cop]]).item()
             self.pw = self.q_ch / self.cop + self.pw_sub
             self.tout_cd = (self.q_ch + self.pw) / (4.186 * self.g_cd * 1000 / 60) + self.tin_cd
 
@@ -722,10 +722,25 @@ class AirSourceHeatPump:
                 pl_cop = pl[0]
                 self.flag = 3
 
-            self.cop = float(cop([[tdb, pl_cop]]))
-            # 逆カルノーサイクルに基づく定格に対する冷水出口温度変化によるCOP補正
-            self.cop *= ((273.15 + self.tout_ch) / (tdb - self.tout_ch)) / (
-                        (273.15 + self.tout_ch_d) / (tdb - self.tout_ch_d))
+            # 外気温度が表の範囲外の場合は端の値を参照する（Chillerの冷却水温度軸と同じ扱い）
+            tdb_cop = tdb
+            if tdb_cop < temp[0]:
+                tdb_cop = temp[0]
+                self.flag = 6
+            elif tdb_cop > temp[-1]:
+                tdb_cop = temp[-1]
+                self.flag = 7
+
+            # 逆カルノーサイクルに基づく定格に対する冷水出口温度変化によるCOP補正。
+            # COP表参照と補正は同じ有効外気温度tdb_copで評価する。
+            # 温度リフト（有効外気温度-冷水出口温度）が0に近づくと補正が発散するため、
+            # 有効外気温度が（出口温度+dt_min）を下回る場合はその点で頭打ち（飽和）とする。
+            # dt_min=5.0はCOP発散を防ぐために仮に設定した暫定値
+            dt_min = 5.0
+            tdb_cop = max(tdb_cop, self.tout_ch + dt_min, self.tout_ch_d + dt_min)
+            self.cop = cop([[min(tdb_cop, temp[-1]), pl_cop]]).item()
+            self.cop *= ((273.15 + self.tout_ch) / (tdb_cop - self.tout_ch)) / (
+                        (273.15 + self.tout_ch_d) / (tdb_cop - self.tout_ch_d))
 
             self.pw = self.q_ch / self.cop + self.pw_sub
 
@@ -828,18 +843,25 @@ class AirSourceHeatPumpHeating:
                 pl_cop = pl[0]
                 self.flag = 3
 
-            self.cop = float(cop([[tdb, pl_cop]]))
-            # 逆カルノーサイクル（暖房COP: T_hot/(T_hot-T_cold)）に基づく定格に対する温水出口温度変化によるCOP補正
-            # 温水出口温度が外気温度に近い場合（立ち上げ時等）は補正係数が発散するため、上限を2.0とする
-            if tdb < self.tout_h_d:
-                if tdb < self.tout_h:
-                    correction = ((273.15 + self.tout_h) / (self.tout_h - tdb)) / (
-                                 (273.15 + self.tout_h_d) / (self.tout_h_d - tdb))
-                    correction = min(correction, 2.0)
-                else:
-                    # 温水出口温度が外気温度以下の場合も上限値を適用（境界での不連続を避ける）
-                    correction = 2.0
-                self.cop *= correction
+            # 外気温度が表の範囲外の場合は端の値を参照する（Chillerの冷却水温度軸と同じ扱い）
+            tdb_cop = tdb
+            if tdb_cop < temp[0]:
+                tdb_cop = temp[0]
+                self.flag = 6
+            elif tdb_cop > temp[-1]:
+                tdb_cop = temp[-1]
+                self.flag = 7
+
+            # 逆カルノーサイクル（暖房COP: T_hot/(T_hot-T_cold)）に基づく定格に対する温水出口温度変化によるCOP補正。
+            # COP表参照と補正は同じ有効外気温度tdb_copで評価する。
+            # 温度リフト（温水出口温度-有効外気温度）が0に近づくと補正が発散するため、
+            # 有効外気温度が（出口温度-dt_min）を上回る場合はその点で頭打ち（飽和）とする。
+            # dt_min=5.0はCOP発散を防ぐために仮に設定した暫定値
+            dt_min = 5.0
+            tdb_cop = min(tdb_cop, self.tout_h - dt_min, self.tout_h_d - dt_min)
+            self.cop = cop([[max(tdb_cop, temp[0]), pl_cop]]).item()
+            self.cop *= ((273.15 + self.tout_h) / (self.tout_h - tdb_cop)) / (
+                        (273.15 + self.tout_h_d) / (self.tout_h_d - tdb_cop))
 
             self.pw = self.q_h / self.cop + self.pw_sub
 
@@ -909,7 +931,7 @@ class AbsorptionChillerESS:
         self.tout_ch = tout_ch_sp
         if self.capacity_c > self.rated_capacity_c:  # 処理熱量が定格能力より大きい時の冷水出口温度を求める
             delta_t = (self.capacity_c - self.rated_capacity_c) / (g * self.cw_c)
-            self.tout_ch = tout_chsp + delta_t
+            self.tout_ch = tout_ch_sp + delta_t
             self.capacity_c = self.rated_capacity_c
 
         plr = self.capacity_c / capacity
@@ -1686,6 +1708,7 @@ class GeoThermalHeatPump_LCEM:  # 松田氏作成（2022年）
                    rated_flow_cd_h: float = None,  # L/min
                    rated_power_c: float = None,  # kW
                    rated_power_h: float = None,  # kW
+                   rated_freq: float = None,  # Hz
                    coefficient_ele_a: float = None,
                    coefficient_ele_b: float = None,
                    mod_temp_chs: float = None,
@@ -2067,8 +2090,8 @@ class VerticalWaterThermalStorageTank:
         # temp ℃
         # density kg/m^3
         return (
-                    999.83952 + 16.945176 * temp - 7.987041 * 10e-3 * temp ** 2 - 46.170461 * 10e-6 * temp ** 3 + 105.56302 * 10e-9 * temp ** 4 - 280.54253 * 10e-12 * temp ** 5) / (
-                1 + 16.879850 * 10e-3 * temp)
+                    999.83952 + 16.945176 * temp - 7.987041 * 1e-3 * temp ** 2 - 46.170461 * 1e-6 * temp ** 3 + 105.56302 * 1e-9 * temp ** 4 - 280.54253 * 1e-12 * temp ** 5) / (
+                1 + 16.879850 * 1e-3 * temp)
 
     def water_thermal_conductivity(self, temp):
         # 水の伝導率　W/(m*K)
@@ -2078,7 +2101,7 @@ class VerticalWaterThermalStorageTank:
         tr = (temp_critical_point - temp_k) / temp_critical_point
 
         lamb = a[len(a) - 1]
-        for i in range(len(a) - 2, 0, -1):
+        for i in range(len(a) - 2, -1, -1):
             lamb = a[i] + lamb * tr
         return lamb
 
@@ -2090,7 +2113,7 @@ class VerticalWaterThermalStorageTank:
         tr = (temp_critical_point - temp_k) / temp_critical_point
 
         cpw = a[len(a) - 1]
-        for i in range(len(a) - 2, 0, -1):
+        for i in range(len(a) - 2, -1, -1):
             cpw = a[i] + cpw * tr
         return cpw
 
