@@ -56,6 +56,7 @@ Please click [here]() to access.
 [こちら](https://github.com/ShoheiMiyata/phyvac/blob/main/Documents/Engineering%20reference_20231129_JP.pdf)より確認できます。
 
 ## Update  
+- 2026/07/18 AirSourceHeatPump・AirSourceHeatPumpHeating: 外気温度が表範囲外でもエラーとせず端の値を参照 (flag 6/7)。カルノー補正を表参照と同じ有効外気温度で評価し、リフト下限5℃で飽和させる方式に冷房・暖房を統一（発散・負COPを防止、単調性を保証）
 - 2026/07/18 fix NameError (AbsorptionChillerESS.cal_c: 定格超過時のtout_chsp→tout_ch_sp、GeoThermalHeatPump_LCEM.set_config: 引数リストに欠落していたrated_freqを追加)
 - 2026/07/18 support numpy 2.x (COP表補間値の取得をfloat()から.item()に変更。numpy 2.xで要素数1配列のfloat()変換が廃止されたことに対応、計算結果は不変)
 - 2026/07/18 fix water property formulas in VerticalWaterThermalStorageTank (水密度式の係数誤り(10e-3→1e-3等)と熱伝導率・比熱多項式の定数項欠落を修正)

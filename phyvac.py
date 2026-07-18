@@ -722,10 +722,25 @@ class AirSourceHeatPump:
                 pl_cop = pl[0]
                 self.flag = 3
 
-            self.cop = cop([[tdb, pl_cop]]).item()
-            # 逆カルノーサイクルに基づく定格に対する冷水出口温度変化によるCOP補正
-            self.cop *= ((273.15 + self.tout_ch) / (tdb - self.tout_ch)) / (
-                        (273.15 + self.tout_ch_d) / (tdb - self.tout_ch_d))
+            # 外気温度が表の範囲外の場合は端の値を参照する（Chillerの冷却水温度軸と同じ扱い）
+            tdb_cop = tdb
+            if tdb_cop < temp[0]:
+                tdb_cop = temp[0]
+                self.flag = 6
+            elif tdb_cop > temp[-1]:
+                tdb_cop = temp[-1]
+                self.flag = 7
+
+            # 逆カルノーサイクルに基づく定格に対する冷水出口温度変化によるCOP補正。
+            # COP表参照と補正は同じ有効外気温度tdb_copで評価する。
+            # 温度リフト（有効外気温度-冷水出口温度）が0に近づくと補正が発散するため、
+            # 有効外気温度が（出口温度+dt_min）を下回る場合はその点で頭打ち（飽和）とする。
+            # dt_min=5.0はCOP発散を防ぐために仮に設定した暫定値
+            dt_min = 5.0
+            tdb_cop = max(tdb_cop, self.tout_ch + dt_min, self.tout_ch_d + dt_min)
+            self.cop = cop([[min(tdb_cop, temp[-1]), pl_cop]]).item()
+            self.cop *= ((273.15 + self.tout_ch) / (tdb_cop - self.tout_ch)) / (
+                        (273.15 + self.tout_ch_d) / (tdb_cop - self.tout_ch_d))
 
             self.pw = self.q_ch / self.cop + self.pw_sub
 
@@ -828,18 +843,25 @@ class AirSourceHeatPumpHeating:
                 pl_cop = pl[0]
                 self.flag = 3
 
-            self.cop = cop([[tdb, pl_cop]]).item()
-            # 逆カルノーサイクル（暖房COP: T_hot/(T_hot-T_cold)）に基づく定格に対する温水出口温度変化によるCOP補正
-            # 温水出口温度が外気温度に近い場合（立ち上げ時等）は補正係数が発散するため、上限を2.0とする
-            if tdb < self.tout_h_d:
-                if tdb < self.tout_h:
-                    correction = ((273.15 + self.tout_h) / (self.tout_h - tdb)) / (
-                                 (273.15 + self.tout_h_d) / (self.tout_h_d - tdb))
-                    correction = min(correction, 2.0)
-                else:
-                    # 温水出口温度が外気温度以下の場合も上限値を適用（境界での不連続を避ける）
-                    correction = 2.0
-                self.cop *= correction
+            # 外気温度が表の範囲外の場合は端の値を参照する（Chillerの冷却水温度軸と同じ扱い）
+            tdb_cop = tdb
+            if tdb_cop < temp[0]:
+                tdb_cop = temp[0]
+                self.flag = 6
+            elif tdb_cop > temp[-1]:
+                tdb_cop = temp[-1]
+                self.flag = 7
+
+            # 逆カルノーサイクル（暖房COP: T_hot/(T_hot-T_cold)）に基づく定格に対する温水出口温度変化によるCOP補正。
+            # COP表参照と補正は同じ有効外気温度tdb_copで評価する。
+            # 温度リフト（温水出口温度-有効外気温度）が0に近づくと補正が発散するため、
+            # 有効外気温度が（出口温度-dt_min）を上回る場合はその点で頭打ち（飽和）とする。
+            # dt_min=5.0はCOP発散を防ぐために仮に設定した暫定値
+            dt_min = 5.0
+            tdb_cop = min(tdb_cop, self.tout_h - dt_min, self.tout_h_d - dt_min)
+            self.cop = cop([[max(tdb_cop, temp[0]), pl_cop]]).item()
+            self.cop *= ((273.15 + self.tout_h) / (self.tout_h - tdb_cop)) / (
+                        (273.15 + self.tout_h_d) / (self.tout_h_d - tdb_cop))
 
             self.pw = self.q_h / self.cop + self.pw_sub
 
