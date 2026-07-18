@@ -909,7 +909,7 @@ class AbsorptionChillerESS:
         self.tout_ch = tout_ch_sp
         if self.capacity_c > self.rated_capacity_c:  # 処理熱量が定格能力より大きい時の冷水出口温度を求める
             delta_t = (self.capacity_c - self.rated_capacity_c) / (g * self.cw_c)
-            self.tout_ch = tout_chsp + delta_t
+            self.tout_ch = tout_ch_sp + delta_t
             self.capacity_c = self.rated_capacity_c
 
         plr = self.capacity_c / capacity
@@ -1686,6 +1686,7 @@ class GeoThermalHeatPump_LCEM:  # 松田氏作成（2022年）
                    rated_flow_cd_h: float = None,  # L/min
                    rated_power_c: float = None,  # kW
                    rated_power_h: float = None,  # kW
+                   rated_freq: float = None,  # Hz
                    coefficient_ele_a: float = None,
                    coefficient_ele_b: float = None,
                    mod_temp_chs: float = None,
