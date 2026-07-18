@@ -4,8 +4,8 @@
 """
 # phyvacモジュール。hvac + python ->phyvac
 # 空調システムの計算を極力物理原理・詳細な制御ロジックに基づいて行う。
-# ver20260716
-print("phyvac: ver20260716")
+# ver20260718
+print("phyvac: ver20260718")
 import math
 import traceback
 import numpy as np
@@ -2067,8 +2067,8 @@ class VerticalWaterThermalStorageTank:
         # temp ℃
         # density kg/m^3
         return (
-                    999.83952 + 16.945176 * temp - 7.987041 * 10e-3 * temp ** 2 - 46.170461 * 10e-6 * temp ** 3 + 105.56302 * 10e-9 * temp ** 4 - 280.54253 * 10e-12 * temp ** 5) / (
-                1 + 16.879850 * 10e-3 * temp)
+                    999.83952 + 16.945176 * temp - 7.987041 * 1e-3 * temp ** 2 - 46.170461 * 1e-6 * temp ** 3 + 105.56302 * 1e-9 * temp ** 4 - 280.54253 * 1e-12 * temp ** 5) / (
+                1 + 16.879850 * 1e-3 * temp)
 
     def water_thermal_conductivity(self, temp):
         # 水の伝導率　W/(m*K)
@@ -2078,7 +2078,7 @@ class VerticalWaterThermalStorageTank:
         tr = (temp_critical_point - temp_k) / temp_critical_point
 
         lamb = a[len(a) - 1]
-        for i in range(len(a) - 2, 0, -1):
+        for i in range(len(a) - 2, -1, -1):
             lamb = a[i] + lamb * tr
         return lamb
 
@@ -2090,7 +2090,7 @@ class VerticalWaterThermalStorageTank:
         tr = (temp_critical_point - temp_k) / temp_critical_point
 
         cpw = a[len(a) - 1]
-        for i in range(len(a) - 2, 0, -1):
+        for i in range(len(a) - 2, -1, -1):
             cpw = a[i] + cpw * tr
         return cpw
 

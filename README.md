@@ -56,6 +56,7 @@ Please click [here]() to access.
 [こちら](https://github.com/ShoheiMiyata/phyvac/blob/main/Documents/Engineering%20reference_20231129_JP.pdf)より確認できます。
 
 ## Update  
+- 2026/07/18 fix water property formulas in VerticalWaterThermalStorageTank (水密度式の係数誤り(10e-3→1e-3等)と熱伝導率・比熱多項式の定数項欠落を修正)
 - 2026/07/16 fix COP reference at low load factor (Chiller・AirSourceHeatPump: 負荷率が表下限未満のとき下限負荷率のCOPを参照するよう修正)
 - 2026/07/16 add AirSourceHeatPumpHeating (空冷ヒートポンプ温水モードモデルとAPIドキュメントの追加)
 - 2023/11    update classes and API document in JP
